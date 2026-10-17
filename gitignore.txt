@@ -618,3 +618,6 @@ work
 History/
 Project Logs for coil_driver/
 Project Outputs for coil_driver/
+
+# github copilot
+.github/
