@@ -296,6 +296,18 @@
     .hex { color: #a9d3ff; white-space: pre-wrap; overflow-wrap: anywhere; }
     .interface { color: #e3c58b; }
     .decoded { color: #b4d9c8; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .log-row[data-role="source"] {
+      background: rgb(88 160 230 / 8%);
+      box-shadow: inset 3px 0 #71b7ff;
+    }
+    .log-row[data-role="source"] .interface { color: #8cc7ff; }
+    .log-row[data-role="source"]:hover { background: rgb(88 160 230 / 15%); }
+    .log-row[data-role="sink"] {
+      background: rgb(188 126 220 / 8%);
+      box-shadow: inset 3px 0 #cc91ec;
+    }
+    .log-row[data-role="sink"] .interface { color: #ddaafa; }
+    .log-row[data-role="sink"]:hover { background: rgb(188 126 220 / 15%); }
     .log-row[data-kind="error"] .interface,
     .log-row[data-kind="error"] .decoded { color: var(--danger); }
 
@@ -605,7 +617,7 @@
       const status = payload[0];
       const sop = sopTypes[(status >> 1) & 0x07];
       const lines = [
-        `Status 0x${status.toString(16).padStart(2, "0").toUpperCase()}: Error=${Boolean(status & 0x80)} | HardReset=${Boolean(status & 0x40)} | FastRoleSwap=${Boolean(status & 0x20)} | Reserved[4]=${Boolean(status & 0x10)} | SOP=${sop} | Reserved[0]=${Boolean(status & 0x01)}`
+        `Status 0x${status.toString(16).padStart(2, "0").toUpperCase()}: Error=${Boolean(status & 0x80)} | HardReset=${Boolean(status & 0x40)} | FastRoleSwap=${Boolean(status & 0x20)} | SOP=${sop}`
       ];
       const packetBytes = payload.slice(1);
 
@@ -745,7 +757,10 @@
         decoded = `Decimal: ${payload.join(", ")}`;
       }
 
-      return { interfaceName, hex, decoded };
+      const role = interfaceName === "USB-PD" && payload.length >= 3
+        ? ((payload[1] | (payload[2] << 8)) & (1 << 8)) ? "source" : "sink"
+        : "";
+      return { interfaceName, hex, decoded, role };
     }
 
     function appendPacket(line, terminated = true, errorOverride) {
@@ -756,6 +771,7 @@
         interfaceName: packet.interfaceName || "ERROR",
         hex: packet.hex || line,
         decoded: packet.error || packet.decoded,
+        role: packet.error ? "" : packet.role,
         kind: packet.error ? "error" : "packet"
       };
       capturedPackets.push(entry);
@@ -764,6 +780,7 @@
       const row = document.createElement("div");
       row.className = "log-row";
       row.dataset.kind = entry.kind;
+      if (entry.role) row.dataset.role = entry.role;
       const values = [
         ["timestamp", entry.time],
         ["interface", entry.interfaceName],
